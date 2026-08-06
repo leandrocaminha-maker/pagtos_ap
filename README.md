@@ -77,42 +77,53 @@ git push -u origin main
 
 O `.env` está no `.gitignore` e **não** vai para o repositório (as chaves ficam só nas máquinas).
 
-## 5. Deploy no VPS HostGator (via SSH)
+## 5. Produção (VPS)
 
-Pré-requisito: Node.js 20+ no servidor (`node -v`). Se precisar, instale via
-[nvm](https://github.com/nvm-sh/nvm): `curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh | bash`
-e depois `nvm install 22`.
+O app já está instalado no servidor. Como o VPS hospeda outros sistemas, vale conhecer o mapa:
+
+| Aplicação | Porta | Diretório | Domínio |
+| --- | --- | --- | --- |
+| `apacademia-site` | 3001 | `/var/www/site` | apacademia.com.br |
+| `ap-academia` (aqua) | 3000 | `/var/www/aqua` | aqua.apacademia.com.br |
+| `cron-worker` | — | `/var/www/aqua` | — |
+| **`pagtos-ap`** (este app) | **3002** | **`/var/www/pagtos`** | pagtos.apacademia.com.br |
+
+Todos rodam sob **pm2** (`pm2 list`) e o **nginx** faz o proxy reverso por subdomínio,
+com certificados Let's Encrypt renovados automaticamente (`certbot-renew.timer`).
+A porta vem da variável `PORT` do `.env` — **não use 3000 nem 3001**, já ocupadas.
+
+### Atualizar o app depois de novos commits
 
 ```bash
-# 1. conectar
-ssh usuario@seu-servidor
+ssh -p 22022 root@108.174.151.51
+cd /var/www/pagtos && git pull && npm ci && npm run build && pm2 restart pagtos-ap
+```
 
-# 2. clonar e instalar
-git clone <url-do-seu-repositorio> pagtos_ap
-cd pagtos_ap
+### Comandos úteis no servidor
+
+```bash
+pm2 list                        # o que está rodando
+pm2 logs pagtos-ap --lines 50   # logs do app
+pm2 restart pagtos-ap           # reiniciar
+nginx -t && systemctl reload nginx   # validar e recarregar o nginx
+```
+
+### Instalar do zero em outro servidor
+
+```bash
+git clone https://github.com/leandrocaminha-maker/pagtos_ap.git /var/www/pagtos
+cd /var/www/pagtos
 npm ci
-
-# 3. criar o .env no servidor
-nano .env   # cole SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY e APP_PASSWORD
-
-# 4. build e iniciar com pm2 (mantém o app no ar e reinicia se cair)
+nano .env          # SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, APP_PASSWORD, PORT
+chmod 600 .env     # o arquivo contém a chave de serviço do banco
 npm run build
-npm install -g pm2
-pm2 start npm --name pagtos-ap -- start
+PORT=3002 pm2 start npm --name pagtos-ap -- start
 pm2 save
-pm2 startup   # siga a instrução exibida para iniciar junto com o servidor
+pm2 startup        # siga a instrução exibida para subir junto com o servidor
 ```
 
-O app sobe na porta **3000**. Para acessar por um domínio (porta 80/443), crie um proxy no
-Apache/Nginx do VPS apontando para `http://127.0.0.1:3000` — no cPanel/WHM da HostGator isso
-pode ser feito com um "reverse proxy" no domínio desejado. Alternativa rápida: liberar a porta
-3000 no firewall e acessar `http://seu-ip:3000`.
-
-Para atualizar depois de novos commits:
-
-```bash
-cd pagtos_ap && git pull && npm ci && npm run build && pm2 restart pagtos-ap
-```
+Depois crie o server block do nginx apontando para `http://localhost:3002` e emita o
+certificado com `certbot --nginx -d seu.dominio.com.br --redirect`.
 
 ## Estrutura
 

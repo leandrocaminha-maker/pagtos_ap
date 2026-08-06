@@ -10,3 +10,6 @@ next-env.d.ts
 arquivos upload/
 *.pdf
 *.xlsx
+
+# config local do Claude Code (pode conter comandos com segredos)
+.claude/
