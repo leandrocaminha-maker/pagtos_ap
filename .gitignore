@@ -5,4 +5,8 @@ out/
 .env.local
 *.tsbuildinfo
 next-env.d.ts
+
+# arquivos com dados reais de folha (nunca versionar)
 arquivos upload/
+*.pdf
+*.xlsx

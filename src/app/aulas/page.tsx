@@ -5,6 +5,7 @@ import { useCompetencia } from "@/lib/CompetenciaContext";
 import { Atividade, Colaborador, Sessao } from "@/lib/types";
 import { fmtBRL, fmtCompetencia } from "@/lib/format";
 import { calcularBonificacao } from "@/lib/calc";
+import { baixarPdfAulas, GrupoAulas } from "@/lib/pdf";
 
 export default function AulasPage() {
   const { competencia } = useCompetencia();
@@ -14,6 +15,7 @@ export default function AulasPage() {
   const [abaAtiva, setAbaAtiva] = useState<string | null>(null);
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(true);
+  const [gerandoPdf, setGerandoPdf] = useState("");
 
   // formulário de nova sessão
   const [novo, setNovo] = useState({ atividade_id: "", data: "", horario: "", presencas: 0 });
@@ -147,6 +149,33 @@ export default function AulasPage() {
 
   const num = (v: string) => (v === "" ? 0 : Number(v));
 
+  async function gerarPdf(escopo: "professor" | "todos") {
+    setGerandoPdf(escopo);
+    setErro("");
+    try {
+      const grupos: GrupoAulas[] =
+        escopo === "professor"
+          ? [{ nome: professores.find((p) => p.id === profAtivo)?.nome || "", sessoes: sessoesProf }]
+          : professores
+              .map((p) => ({
+                nome: p.nome,
+                sessoes: sessoes
+                  .filter((s) => s.colaborador_id === p.id)
+                  .sort((a, b) => `${a.data} ${a.horario}`.localeCompare(`${b.data} ${b.horario}`)),
+              }))
+              .filter((g) => g.sessoes.length > 0);
+      if (grupos.length === 0) {
+        setErro("Nenhuma aula para gerar o PDF nesta competência.");
+        return;
+      }
+      await baixarPdfAulas(grupos, competencia);
+    } catch (e) {
+      setErro(`Erro ao gerar o PDF: ${(e as Error).message}`);
+    } finally {
+      setGerandoPdf("");
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -157,19 +186,35 @@ export default function AulasPage() {
             salvo ao sair do campo. Bonificação recalculada ao alterar presenças.
           </p>
         </div>
-        <form onSubmit={criarProfessor} className="flex items-end gap-2">
-          <label className="flex flex-col gap-1 text-sm">
-            Novo professor autônomo
-            <input
-              className="input"
-              value={novoProfessor}
-              onChange={(e) => setNovoProfessor(e.target.value)}
-              placeholder="Nome"
-              required
-            />
-          </label>
-          <button className="btn btn-secondary">Adicionar</button>
-        </form>
+        <div className="flex flex-wrap items-end gap-2">
+          <button
+            className="btn btn-secondary"
+            disabled={!profAtivo || sessoesProf.length === 0 || gerandoPdf !== ""}
+            onClick={() => gerarPdf("professor")}
+          >
+            {gerandoPdf === "professor" ? "Gerando..." : "📄 PDF deste professor"}
+          </button>
+          <button
+            className="btn btn-secondary"
+            disabled={sessoes.length === 0 || gerandoPdf !== ""}
+            onClick={() => gerarPdf("todos")}
+          >
+            {gerandoPdf === "todos" ? "Gerando..." : "📄 PDF de todos"}
+          </button>
+          <form onSubmit={criarProfessor} className="flex items-end gap-2">
+            <label className="flex flex-col gap-1 text-sm">
+              Novo professor autônomo
+              <input
+                className="input"
+                value={novoProfessor}
+                onChange={(e) => setNovoProfessor(e.target.value)}
+                placeholder="Nome"
+                required
+              />
+            </label>
+            <button className="btn btn-secondary">Adicionar</button>
+          </form>
+        </div>
       </div>
 
       {erro && <p className="text-sm text-rose-600">{erro}</p>}

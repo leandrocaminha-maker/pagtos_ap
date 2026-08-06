@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useCompetencia } from "@/lib/CompetenciaContext";
 import { FolhaRow, contratoLabel } from "@/lib/types";
 import { fmtBRL, fmtCompetencia, fmtHoras } from "@/lib/format";
+import { baixarPdfFolha } from "@/lib/pdf";
 
 type CampoEditavel = "ajuste_horas" | "valor_extras" | "valor_servicos" | "valor_adiantado";
 
@@ -14,6 +15,7 @@ export default function FolhaPage() {
   const [carregando, setCarregando] = useState(true);
   const [modalHoristas, setModalHoristas] = useState(false);
   const [copiado, setCopiado] = useState(false);
+  const [gerandoPdf, setGerandoPdf] = useState(false);
 
   async function carregar(silencioso = false) {
     if (!silencioso) setCarregando(true);
@@ -87,9 +89,27 @@ export default function FolhaPage() {
             ao sair da célula).
           </p>
         </div>
-        <button className="btn" onClick={() => setModalHoristas(true)} disabled={horistas.length === 0}>
-          Horas dos horistas p/ DP
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            className="btn btn-secondary"
+            disabled={rows.length === 0 || gerandoPdf}
+            onClick={async () => {
+              setGerandoPdf(true);
+              try {
+                await baixarPdfFolha(rows, competencia);
+              } catch (e) {
+                setErro(`Erro ao gerar o PDF: ${(e as Error).message}`);
+              } finally {
+                setGerandoPdf(false);
+              }
+            }}
+          >
+            {gerandoPdf ? "Gerando..." : "📄 Baixar folha em PDF"}
+          </button>
+          <button className="btn" onClick={() => setModalHoristas(true)} disabled={horistas.length === 0}>
+            Horas dos horistas p/ DP
+          </button>
+        </div>
       </div>
 
       {erro && <p className="text-sm text-rose-600">{erro}</p>}

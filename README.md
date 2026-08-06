@@ -14,9 +14,11 @@ CLT mensalistas, CLT horistas, estagiários e autônomos/freelancers.
   XLSX de aulas dos autônomos (Data, Hora, Atividade, Participantes, Professor).
 - **Aulas**: abas por professor com todas as aulas do mês; células editáveis,
   inserir/excluir sessão, bonificação recalculada automaticamente.
+  Botões para baixar em PDF as aulas do professor atual ou de todos (um por página).
 - **Folha do mês**: horas calculadas + ajuste, salário DP, bolsa estágio, valor aulas,
   transporte, extras, serviços, adiantamento (desconto), total a pagar e status de pagamento.
-  Botão que gera o texto com **nome e total de horas dos horistas** para colar no e-mail ao DP.
+  Botão que gera o texto com **nome e total de horas dos horistas** para colar no e-mail ao DP
+  e botão para baixar a folha completa em PDF (paisagem, com totais por coluna).
 - Dados preservados por competência (mês), armazenados no Supabase.
 
 ## 1. Configurar o Supabase
@@ -119,4 +121,5 @@ cd pagtos_ap && git pull && npm ci && npm run build && pm2 restart pagtos-ap
 - `src/lib/parseEspelho.ts` — parser do PDF do espelho (SCI VISUAL Practice)
 - `src/lib/parseAulas.ts` — parser do XLSX de aulas
 - `src/lib/calc.ts` — horas do mês, bonificação, competência
+- `src/lib/pdf.ts` — geração dos PDFs da folha e das aulas (jsPDF, no navegador)
 - `supabase/schema.sql` — criação das tabelas
