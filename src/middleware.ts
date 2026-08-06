@@ -14,9 +14,10 @@ export async function middleware(req: NextRequest) {
   if (pathname.startsWith("/api/")) {
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   }
-  const url = req.nextUrl.clone();
-  url.pathname = "/login";
-  return NextResponse.redirect(url);
+  // Location relativo de propósito: atrás do proxy reverso o servidor só conhece
+  // o próprio endereço local, então uma URL absoluta mandaria o navegador para
+  // localhost:3002 em vez do domínio acessado.
+  return new NextResponse(null, { status: 307, headers: { location: "/login" } });
 }
 
 export const config = {
