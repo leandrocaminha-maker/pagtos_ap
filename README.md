@@ -86,7 +86,7 @@ O app já está instalado no servidor. Como o VPS hospeda outros sistemas, vale 
 | `apacademia-site` | 3001 | `/var/www/site` | apacademia.com.br |
 | `ap-academia` (aqua) | 3000 | `/var/www/aqua` | aqua.apacademia.com.br |
 | `cron-worker` | — | `/var/www/aqua` | — |
-| **`pagtos-ap`** (este app) | **3002** | **`/var/www/pagtos`** | pagtos.apacademia.com.br |
+| **`pagtos-ap`** (este app) | **3002** | **`/var/www/pagtos`** | https://pagtos.apacademia.com.br |
 
 Todos rodam sob **pm2** (`pm2 list`) e o **nginx** faz o proxy reverso por subdomínio,
 com certificados Let's Encrypt renovados automaticamente (`certbot-renew.timer`).
@@ -117,7 +117,10 @@ npm ci
 nano .env          # SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, APP_PASSWORD, PORT
 chmod 600 .env     # o arquivo contém a chave de serviço do banco
 npm run build
-PORT=3002 pm2 start npm --name pagtos-ap -- start
+
+# -H 127.0.0.1 faz o app aceitar conexões só do nginx local:
+# sem isso a porta fica exposta na internet em HTTP puro
+PORT=3002 pm2 start ./node_modules/next/dist/bin/next --name pagtos-ap -- start -H 127.0.0.1
 pm2 save
 pm2 startup        # siga a instrução exibida para subir junto com o servidor
 ```
